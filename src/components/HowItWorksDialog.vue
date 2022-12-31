@@ -1,20 +1,10 @@
-<script setup>
-import { computed, onMounted, onUnmounted, watch } from 'vue';
+<script setup lang="ts">
+import {computed, onMounted, onUnmounted, watch} from 'vue';
 
-const props = defineProps({
-  show: {
-    type: Boolean,
-    default: false,
-  },
-  maxWidth: {
-    type: String,
-    default: '2xl',
-  },
-  closeable: {
-    type: Boolean,
-    default: true,
-  },
-});
+const props = defineProps<{
+  show: boolean,
+  maxWidth?: string,
+}>();
 
 const emit = defineEmits(['close']);
 
@@ -22,17 +12,15 @@ watch(() => props.show, () => {
   if (props.show) {
     document.body.style.overflow = 'hidden';
   } else {
-    document.body.style.overflow = null;
+    document.body.style.overflow = '';
   }
 });
 
 const close = () => {
-  if (props.closeable) {
-    emit('close');
-  }
+  emit('close');
 };
 
-const closeOnEscape = (e) => {
+const closeOnEscape = (e: KeyboardEvent) => {
   if (e.key === 'Escape' && props.show) {
     close();
   }
@@ -42,7 +30,7 @@ onMounted(() => document.addEventListener('keydown', closeOnEscape));
 
 onUnmounted(() => {
   document.removeEventListener('keydown', closeOnEscape);
-  document.body.style.overflow = null;
+  document.body.style.overflow = '';
 });
 
 const maxWidthClass = computed(() => {
@@ -51,8 +39,8 @@ const maxWidthClass = computed(() => {
     'md': 'sm:max-w-md',
     'lg': 'sm:max-w-lg',
     'xl': 'sm:max-w-xl',
-    '2xl': 'sm:max-w-2xl',
-  }[props.maxWidth];
+    '2xl': 'sm:max-w-2xl'
+  }[props.maxWidth ?? '2xl'];
 });
 </script>
 
@@ -75,7 +63,7 @@ ol > li {
             leave-to-class="opacity-0"
         >
           <div v-show="show" class="fixed inset-0 transform transition-all" @click="close">
-            <div class="absolute inset-0 bg-gray-500 opacity-75" />
+            <div class="absolute inset-0 bg-gray-500 opacity-75"/>
           </div>
         </transition>
 

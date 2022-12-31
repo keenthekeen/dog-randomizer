@@ -173,7 +173,7 @@ li::marker {
       <div v-if="!settings.result" class="mb-4">
         <label for="datetime" class="block text-sm font-medium text-gray-700 dark:text-gray-500">Time of Beacon Pulse</label>
         <div class="relative mt-1 rounded-md shadow-sm">
-          <input type="datetime-local" id="datetime" :disabled="settings.result"
+          <input type="datetime-local" id="datetime" :disabled="Boolean(settings.result)"
                  class="block w-full rounded-md border-gray-300 focus:border-red-400 dark:focus:border-red-800 focus:ring-red-400 dark:focus:ring-red-800 sm:text-sm dark:bg-gray-800 dark:text-gray-200"
                  :class="{ 'border-red-300 focus:border-red-400': !time }"
                  v-model="timeString" min="2022-12-01T00:00" :max="dateToString(maxDate)" step="60"/>
@@ -237,19 +237,19 @@ li::marker {
         <div v-if="settings.mode === 'number'">
           between
           <div class="inline-block relative rounded-md shadow-sm">
-            <input type="number" v-model.number="settings.min" placeholder="Min" min="1" step="1" :disabled="settings.result"
+            <input type="number" v-model.number="settings.min" placeholder="Min" min="1" step="1" :disabled="Boolean(settings.result)"
                    class="block w-20 rounded-md border-gray-300 focus:border-red-400 dark:focus:border-red-800 focus:ring-red-400 dark:focus:ring-red-800 sm:text-sm dark:bg-gray-800 dark:text-gray-200"/>
           </div>
           and
           <div class="inline-block relative rounded-md shadow-sm">
-            <input type="number" v-model.number="settings.max" placeholder="Max" min="2" step="1" :disabled="settings.result"
+            <input type="number" v-model.number="settings.max" placeholder="Max" min="2" step="1" :disabled="Boolean(settings.result)"
                    class="block w-20 rounded-md border-gray-300 focus:border-red-400 dark:focus:border-red-800 focus:ring-red-400 dark:focus:ring-red-800 sm:text-sm dark:bg-gray-800 dark:text-gray-200"/>
           </div>
         </div>
         <div v-if="settings.mode === 'random'">
           <label for="random-n" class="block text-sm font-medium text-gray-700 dark:text-gray-400">Amount of values</label>
           <div class="relative mt-1 rounded-md shadow-sm">
-            <input type="number" id="random-n" v-model.number="settings.n" placeholder="n" min="1" step="1" :disabled="settings.result"
+            <input type="number" id="random-n" v-model.number="settings.n" placeholder="n" min="1" step="1" :disabled="Boolean(settings.result)"
                    class="block w-full rounded-md border-gray-300 focus:border-red-400 dark:focus:border-red-800 focus:ring-red-400 dark:focus:ring-red-800 sm:text-sm dark:bg-gray-800 dark:text-gray-200"/>
           </div>
         </div>
@@ -257,7 +257,7 @@ li::marker {
           <div class="mb-2">
             pick
             <div class="inline-block relative rounded-md shadow-sm">
-              <input type="number" v-model.number="settings.n" placeholder="n" min="1" step="1" :disabled="settings.result"
+              <input type="number" v-model.number="settings.n" placeholder="n" min="1" step="1" :disabled="Boolean(settings.result)"
                      class="block w-20 rounded-md border-gray-300 focus:border-red-400 dark:focus:border-red-800 focus:ring-red-400 dark:focus:ring-red-800 sm:text-sm dark:bg-gray-800 dark:text-gray-200"/>
             </div>
             from
@@ -266,7 +266,7 @@ li::marker {
         <div v-if="['shuffle', 'pick', 'assign'].includes(settings.mode)" class="grow">
           <label for="list" class="block text-sm font-medium text-gray-700 dark:text-gray-400">List, one member per line</label>
           <div class="relative mt-1 rounded-md shadow-sm">
-            <textarea id="list" v-model.trim="settings.list" :disabled="settings.result"
+            <textarea id="list" v-model.trim="settings.list" :disabled="Boolean(settings.result)"
                       class="block w-full rounded-md border-gray-300 focus:border-red-400 dark:focus:border-red-800 focus:ring-red-400 dark:focus:ring-red-800 sm:text-sm dark:bg-gray-800 dark:text-gray-200"
                       :placeholder='"Jane\nBob\nAlice"' rows="4"/>
           </div>
@@ -274,7 +274,7 @@ li::marker {
         <div v-if="settings.mode === 'assign'" class="grow">
           <label for="roles" class="block text-sm font-medium text-gray-700 dark:text-gray-400">Roles, one per line</label>
           <div class="relative mt-1 rounded-md shadow-sm">
-            <textarea id="roles" v-model.trim="settings.roles" :disabled="settings.result"
+            <textarea id="roles" v-model.trim="settings.roles" :disabled="Boolean(settings.result)"
                       class="block w-full rounded-md border-gray-300 focus:border-red-400 dark:focus:border-red-800 focus:ring-red-400 dark:focus:ring-red-800 sm:text-sm dark:bg-gray-800 dark:text-gray-200"
                       :placeholder='"Diagnosis\nInvestigation\nTreatment"' rows="4"/>
           </div>
@@ -301,9 +301,11 @@ li::marker {
       </div>
       <div v-else-if="settings.mode === 'pick' && Array.isArray(settings.result)">
         <ol class="list-decimal list-outside pl-8">
-          <li v-for="item in (listContainsDuplicate ? settings.result : listArray)" :key="item" :class="{'font-bold text-red-600': settings.result.includes(item.trim())}">
+          <li v-for="item in (listContainsDuplicate ? settings.result : listArray)" :key="item" :class="//@ts-ignore
+          {'font-bold text-red-600': settings.result.includes(item)}">
             {{ item }}
-            <CheckIcon v-if="settings.result.includes(item.trim())" class="inline-block h-4 w-4 text-red-600"/>
+            <CheckIcon v-if="//@ts-ignore
+            settings.result.includes(item)" class="inline-block h-4 w-4 text-red-600"/>
           </li>
         </ol>
       </div>
@@ -312,7 +314,8 @@ li::marker {
           <li v-for="item in settings.result" :key="item">{{ item }}</li>
         </ol>
       </div>
-      <div v-else-if="settings.mode === 'assign' && Array.isArray(settings.result.list) && Array.isArray(settings.result.roles)">
+      <div v-else-if="//@ts-ignore
+        settings.mode === 'assign' && Array.isArray(settings.result.list) && Array.isArray(settings.result.roles)">
         <div class="sm:mr-6 shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
@@ -322,9 +325,14 @@ li::marker {
             </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="(item, i) in settings.result.list">
+            <tr v-for="(item, i) in // @ts-ignore
+            settings.result.list">
               <td class="px-2 py-2 md:px-4 md:py-3">{{ item }}</td>
-              <td class="px-2 py-2 md:px-4 md:py-3">{{ settings.result.roles[i] ?? '-' }}</td>
+              <td class="px-2 py-2 md:px-4 md:py-3">{{
+                  //@ts-ignore
+                  settings.result.roles[i] ?? '-'
+                }}
+              </td>
             </tr>
             </tbody>
           </table>
