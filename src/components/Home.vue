@@ -75,7 +75,7 @@ const setMode = (mode: 'number' | 'random' | 'shuffle' | 'pick' | 'assign') => {
 const listArray = computed(() => settings.list.split("\n").map(s => s.trim()).filter(s => s).sort());
 const listContainsDuplicate = computed(() => new Set(listArray.value).size !== listArray.value.length);
 const rolesArray = computed(() => settings.roles.split("\n").map(s => s.trim()).filter(s => s).sort());
-const randomDog = ref<string | null>(null);
+const randomDog = ref<{ src: string, result: number | string } | null>(null);
 const randomize = () => {
   if (!randomPulse.value) {
     return;
@@ -85,14 +85,17 @@ const randomize = () => {
     if (!settings.min || !settings.max) {
       return;
     }
-    settings.result = randomizer.randomIntBetween(settings.min, settings.max);
+    const result = randomizer.randomIntBetween(settings.min, settings.max);
+    settings.result = result;
 
     // Get a dog
-    fetch('https://dog.ceo/api/breeds/image/random')
-        .then(response => response.json())
-        .then(data => {
-          randomDog.value = data.message;
-        });
+    if (!randomDog.value || randomDog.value.result !== result) {
+      fetch('https://dog.ceo/api/breeds/image/random')
+          .then(response => response.json())
+          .then(data => {
+            randomDog.value = {src: data.message, result};
+          });
+    }
   } else if (settings.mode === 'pick') {
     if (listArray.value.length < 2) {
       return;
@@ -295,7 +298,7 @@ li::marker {
       <div v-if="settings.mode === 'number'">
         Selected number is {{ settings.result }}
         <div v-if="randomDog" class="relative w-60 h-60 overflow-hidden">
-          <img :src="randomDog" alt="A dog" class="object-cover w-full h-full"/>
+          <img :src="randomDog.src" alt="A dog" class="object-cover w-full h-full"/>
           <div class="absolute w-full py-4 bottom-0 inset-x-0 font-bold text-4xl text-white text-center leading-4">Dog {{ settings.result }}</div>
         </div>
       </div>
