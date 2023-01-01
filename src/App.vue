@@ -15,11 +15,13 @@ const toggleDarkMode = () => {
   <div class="relative flex items-top justify-center min-h-screen bg-gray-50 dark:bg-gray-800 dark:text-gray-100 sm:items-center sm:pt-0">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 sm:mt-0">
       <div class="flex justify-center pt-8">
-        <h1 class="text-6xl font-extrabold md:px-4 lg:px-12">
-          <span class="text-transparent bg-clip-text bg-gradient-to-br from-red-400 to-rose-700">Dog</span>
-          <span class="text-4xl">&ensp;🐶&ensp;</span>
-          <span class="text-gray-700 dark:text-gray-200">Randomizer</span>
-        </h1>
+        <a href="/">
+          <h1 class="text-6xl font-extrabold md:px-4 lg:px-12">
+            <span class="text-transparent bg-clip-text bg-gradient-to-br from-red-400 to-rose-700">Dog</span>
+            <span class="text-4xl">&ensp;🐶&ensp;</span>
+            <span class="text-gray-700 dark:text-gray-200">Randomizer</span>
+          </h1>
+        </a>
       </div>
 
       <div class="mt-8">

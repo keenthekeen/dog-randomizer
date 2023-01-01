@@ -19,7 +19,7 @@ const dateToString = (date: Date) => {
   convertedDate.setMinutes(convertedDate.getMinutes() - timezoneOffset); // set to local timezone
   return convertedDate.toISOString().substring(0, 16);
 };
-const time = ref(now); // selected time, in UTC
+const time = ref<Date>(now); // selected time, in UTC
 let timeWatcher: number | null = null;
 const timeString = computed({
   get: () => dateToString(time.value),
@@ -33,6 +33,9 @@ const timeString = computed({
       timeWatcher = setTimeout(fetchPulse, time.value.valueOf() + 10000 - (new Date()).valueOf());
     }
   }
+});
+const isTimeInFuture = computed(() => {
+  return time.value > new Date();
 });
 const randomPulse = ref<Pulse | null>(null);
 const fetchPulse = async () => {
@@ -67,7 +70,7 @@ const settings = reactive<{ mode: 'number' | 'random' | 'shuffle' | 'pick' | 'as
   result: null
 });
 const setMode = (mode: 'number' | 'random' | 'shuffle' | 'pick' | 'assign') => {
-  if (settings.mode !== mode && !settings.result) {
+  if (settings.mode !== mode && !isFormDisabled.value) {
     settings.mode = mode;
     settings.result = null;
   }
@@ -134,14 +137,23 @@ const shareUrl = computed(() => {
   if (!settings.mode || !timeString.value || settingsToUrl[settings.mode].filter(key => !settings[key]).length) {
     return null;
   }
-  const url = new URL(window.location.protocol + '//' + window.location.host + window.location.pathname); // URL without query parameters
-  url.searchParams.set('time', timeString.value);
+  const url = new URL(currentUrlWithoutParameters.value); // URL without query parameters
+  url.searchParams.set('time', time.value.valueOf().toString());
   url.searchParams.set('mode', settings.mode);
   settingsToUrl[settings.mode].forEach(key => {
     // @ts-ignore
     url.searchParams.set(key, settings[key]);
   });
   return url.toString();
+});
+const currentUrlWithoutParameters = computed<string>(() => {
+  return window.location.protocol + '//' + window.location.host + window.location.pathname;
+});
+const isVisitingSharedUrl = computed<boolean>(() => {
+  return window.location.search.includes('mode=') && window.location.search.includes('time=');
+});
+const isFormDisabled = computed<boolean>(() => {
+  return Boolean(settings.result) || isVisitingSharedUrl.value;
 });
 onMounted(() => {
   const urlInput = new URL(window.location.href);
@@ -158,7 +170,14 @@ onMounted(() => {
         settings[key] = parseInt(urlInput.searchParams.get(key));
       }
     });
-    timeString.value = urlInput.searchParams.get('time')!;
+    time.value = new Date(parseInt(urlInput.searchParams.get('time')!));
+    if (timeWatcher) {
+      clearTimeout(timeWatcher);
+    }
+    if (time.value > new Date()) {
+      // future time, let's set a timer to randomize
+      timeWatcher = setTimeout(fetchPulse, time.value.valueOf() + 10000 - (new Date()).valueOf());
+    }
   } else {
     fetchPulse();
   }
@@ -174,7 +193,15 @@ li::marker {
 <template>
   <form @submit.prevent="$emit('submit', settings)">
     <div class="border-b mb-4 pb-4">
-      <div v-if="useLocalRandom" class="flex items-start">
+      <div v-if="isVisitingSharedUrl && !useLocalRandom && randomPulse" class="relative mt-8 mb-4 p-3 rounded bg-red-800 text-white">
+        The url is set to use randomness at <span class="font-bold">{{ time }}</span>.
+        <a href="/"><XMarkIcon class="h-6 w-6 text-red-400 absolute top-1 right-1 cursor-pointer"/></a>
+      </div>
+      <div v-if="isVisitingSharedUrl && !useLocalRandom && !randomPulse" class="relative mt-8 p-3 rounded bg-red-800 text-white">
+        Waiting for randomness. Please visit this page again after <span class="font-bold">{{ time }}</span>.
+        <a href="/"><XMarkIcon class="h-6 w-6 text-red-400 absolute top-1 right-1 cursor-pointer"/></a>
+      </div>
+      <div v-else-if="useLocalRandom" class="flex items-start">
         <div class="flex items-center h-5">
           <input type="checkbox" v-model="useLocalRandom" id="use_local_random"
                  class="rounded border-gray-300 text-red-600 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50">
@@ -188,7 +215,7 @@ li::marker {
         <div v-if="!settings.result" class="mb-4">
           <label for="datetime" class="block text-sm font-medium text-gray-700 dark:text-gray-400">Time of Beacon Pulse</label>
           <div class="relative mt-1 rounded-md shadow-sm">
-            <input type="datetime-local" id="datetime" :disabled="Boolean(settings.result)"
+            <input type="datetime-local" id="datetime" :disabled="isFormDisabled"
                    class="block w-full rounded-md border-gray-300 focus:border-red-400 dark:focus:border-red-800 focus:ring-red-400 dark:focus:ring-red-800 sm:text-sm dark:bg-gray-800 dark:text-gray-200"
                    :class="{ 'border-red-300 focus:border-red-400': !time }"
                    v-model="timeString" min="2022-12-01T00:00" :max="dateToString(maxDate)" step="60"/>
@@ -201,7 +228,10 @@ li::marker {
           <span class="font-mono text-sm text-red-400 dark:text-red-800" title="52-bit randomness from NIST">{{ randomPulse.trimmedRandomValue }}</span>
         </div>
         <p v-else class="text-xs text-gray-500">
-          <template v-if="time">{{ time }} <span v-if="time > new Date()" class="italic font-bold text-red-500">(Future)</span></template>
+          <template v-if="time">
+            {{ time }}
+            <span v-if="isTimeInFuture" class="italic font-bold text-red-500">Time set in the future.</span>
+          </template>
           <template v-else>Timezone: {{ timezone }} (
             <template v-if="timezoneOffset<0">+</template>
             {{ -timezoneOffset / 60 }})
@@ -213,35 +243,35 @@ li::marker {
       <div class="basis-1/2">
         <ul class="space-y-2 text-gray-800 dark:text-gray-300">
           <li>
-            <a @click="setMode('number')" :class="{'ring-2 ring-red-600': settings.mode === 'number', 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700': !settings.result}"
+            <a @click="setMode('number')" :class="{'ring-2 ring-red-600': settings.mode === 'number', 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700': !isFormDisabled}"
                class="flex items-center p-2 text-base font-normal rounded-lg group">
               <HashtagIcon class="w-6 h-6 text-gray-400 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"/>
               <span class="ml-3">Random one number</span>
             </a>
           </li>
           <li>
-            <a @click="setMode('random')" :class="{'ring-2 ring-red-600': settings.mode === 'random', 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700': !settings.result}"
+            <a @click="setMode('random')" :class="{'ring-2 ring-red-600': settings.mode === 'random', 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700': !isFormDisabled}"
                class="flex items-center p-2 text-base font-normal rounded-lg group">
               <CalculatorIcon class="w-6 h-6 text-gray-400 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"/>
               <span class="ml-3">Random multiple numbers (0-1)</span>
             </a>
           </li>
           <li>
-            <a @click="setMode('pick')" :class="{'ring-2 ring-red-600': settings.mode === 'pick', 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700': !settings.result}"
+            <a @click="setMode('pick')" :class="{'ring-2 ring-red-600': settings.mode === 'pick', 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700': !isFormDisabled}"
                class="flex items-center p-2 text-base font-normal rounded-lg group">
               <QueueListIcon class="w-6 h-6 text-gray-400 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"/>
               <span class="ml-3">Pick from the list</span>
             </a>
           </li>
           <li>
-            <a @click="setMode('shuffle')" :class="{'ring-2 ring-red-600': settings.mode === 'shuffle', 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700': !settings.result}"
+            <a @click="setMode('shuffle')" :class="{'ring-2 ring-red-600': settings.mode === 'shuffle', 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700': !isFormDisabled}"
                class="flex items-center p-2 text-base font-normal rounded-lg group">
               <ChevronUpDownIcon class="w-6 h-6 text-gray-400 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"/>
               <span class="ml-3">Shuffle the list</span>
             </a>
           </li>
           <li>
-            <a @click="setMode('assign')" :class="{'ring-2 ring-red-600': settings.mode === 'assign', 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700': !settings.result}"
+            <a @click="setMode('assign')" :class="{'ring-2 ring-red-600': settings.mode === 'assign', 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700': !isFormDisabled}"
                class="flex items-center p-2 text-base font-normal rounded-lg group">
               <TagIcon class="w-6 h-6 text-gray-400 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"/>
               <span class="ml-3">Assign role to the list</span>
@@ -253,19 +283,19 @@ li::marker {
         <div v-if="settings.mode === 'number'">
           between
           <div class="inline-block relative rounded-md shadow-sm">
-            <input type="number" v-model.number="settings.min" placeholder="Min" min="1" step="1" :disabled="Boolean(settings.result)"
+            <input type="number" v-model.number="settings.min" placeholder="Min" min="1" step="1" :disabled="isFormDisabled"
                    class="block w-20 rounded-md border-gray-300 focus:border-red-400 dark:focus:border-red-800 focus:ring-red-400 dark:focus:ring-red-800 sm:text-sm dark:bg-gray-800 dark:text-gray-200"/>
           </div>
           and
           <div class="inline-block relative rounded-md shadow-sm">
-            <input type="number" v-model.number="settings.max" placeholder="Max" min="2" step="1" :disabled="Boolean(settings.result)"
+            <input type="number" v-model.number="settings.max" placeholder="Max" min="2" step="1" :disabled="isFormDisabled"
                    class="block w-20 rounded-md border-gray-300 focus:border-red-400 dark:focus:border-red-800 focus:ring-red-400 dark:focus:ring-red-800 sm:text-sm dark:bg-gray-800 dark:text-gray-200"/>
           </div>
         </div>
         <div v-if="settings.mode === 'random'">
           <label for="random-n" class="block text-sm font-medium text-gray-700 dark:text-gray-400">Amount of values</label>
           <div class="relative mt-1 rounded-md shadow-sm">
-            <input type="number" id="random-n" v-model.number="settings.n" placeholder="n" min="1" step="1" :disabled="Boolean(settings.result)"
+            <input type="number" id="random-n" v-model.number="settings.n" placeholder="n" min="1" step="1" :disabled="isFormDisabled"
                    class="block w-full rounded-md border-gray-300 focus:border-red-400 dark:focus:border-red-800 focus:ring-red-400 dark:focus:ring-red-800 sm:text-sm dark:bg-gray-800 dark:text-gray-200"/>
           </div>
         </div>
@@ -273,7 +303,7 @@ li::marker {
           <div class="mb-2">
             pick
             <div class="inline-block relative rounded-md shadow-sm">
-              <input type="number" v-model.number="settings.n" placeholder="n" min="1" step="1" :disabled="Boolean(settings.result)"
+              <input type="number" v-model.number="settings.n" placeholder="n" min="1" step="1" :disabled="isFormDisabled"
                      class="block w-20 rounded-md border-gray-300 focus:border-red-400 dark:focus:border-red-800 focus:ring-red-400 dark:focus:ring-red-800 sm:text-sm dark:bg-gray-800 dark:text-gray-200"/>
             </div>
             from
@@ -282,7 +312,7 @@ li::marker {
         <div v-if="['shuffle', 'pick', 'assign'].includes(settings.mode)" class="grow">
           <label for="list" class="block text-sm font-medium text-gray-700 dark:text-gray-400">List, one member per line</label>
           <div class="relative mt-1 rounded-md shadow-sm">
-            <textarea id="list" v-model.trim="settings.list" :disabled="Boolean(settings.result)"
+            <textarea id="list" v-model.trim="settings.list" :disabled="isFormDisabled"
                       class="block w-full rounded-md border-gray-300 focus:border-red-400 dark:focus:border-red-800 focus:ring-red-400 dark:focus:ring-red-800 sm:text-sm dark:bg-gray-800 dark:text-gray-200"
                       :placeholder='"Jane\nBob\nAlice"' rows="4"/>
           </div>
@@ -290,15 +320,15 @@ li::marker {
         <div v-if="settings.mode === 'assign'" class="grow">
           <label for="roles" class="block text-sm font-medium text-gray-700 dark:text-gray-400">Roles, one per line</label>
           <div class="relative mt-1 rounded-md shadow-sm">
-            <textarea id="roles" v-model.trim="settings.roles" :disabled="Boolean(settings.result)"
+            <textarea id="roles" v-model.trim="settings.roles" :disabled="isFormDisabled"
                       class="block w-full rounded-md border-gray-300 focus:border-red-400 dark:focus:border-red-800 focus:ring-red-400 dark:focus:ring-red-800 sm:text-sm dark:bg-gray-800 dark:text-gray-200"
                       :placeholder='"Diagnosis\nInvestigation\nTreatment"' rows="4"/>
           </div>
         </div>
       </div>
     </div>
-    <button type="submit" @click="randomize" v-if="!settings.result" :disabled="!randomPulse"
-            :class="{ 'border-slate-700 dark:border-slate-300 text-slate-700 dark:text-slate-300': randomPulse, 'border-gray-300 text-gray-300 dark:border-gray-800 dark:text-gray-800': !randomPulse }"
+    <button type="submit" @click="randomize" v-if="!isFormDisabled" :disabled="!randomPulse"
+            :class="{ 'border-slate-700 dark:border-slate-300 text-slate-700 dark:text-slate-300': randomPulse, 'border-gray-300 text-gray-300 dark:border-gray-700 dark:text-gray-700': !randomPulse }"
             class="mt-8 group relative flex w-full justify-center rounded-md py-2 px-4 text-sm font-medium border-2 hover:bg-black hover:bg-opacity-5 focus:outline-none focus:ring-0 transition duration-150 ease-in-out">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3">
               <ChevronRightIcon class="h-5 w-5" aria-hidden="true"/>
@@ -307,7 +337,7 @@ li::marker {
     </button>
     <div v-if="settings.result" class="relative mt-8 p-3 rounded border-2 border-red-800 dark:border-red-500 bg-white dark:bg-gray-900">
       <p class="font-bold text-sm text-red-800 dark:text-red-500">Result</p>
-      <XMarkIcon @click="settings.result = null" class="h-8 w-8 text-red-700 absolute top-1 right-1 cursor-pointer"/>
+      <XMarkIcon v-if="!isVisitingSharedUrl" @click="settings.result = null" class="h-8 w-8 text-red-700 absolute top-1 right-1 cursor-pointer"/>
       <div v-if="settings.mode === 'number'">
         Selected number is {{ settings.result }}
         <div v-if="randomDog" class="relative w-60 h-60 overflow-hidden">
@@ -355,9 +385,9 @@ li::marker {
         </div>
       </div>
     </div>
-    <p v-if="shareUrl" class="text-center text-xs mt-4 text-gray-500 dark:text-gray-400">
+    <p v-if="shareUrl && !useLocalRandom" class="text-center text-xs mt-4 text-gray-500 dark:text-gray-400">
       Share: <a :href="shareUrl" class="text-red-400 dark:text-red-600">{{ shareUrl }}</a>
-      <span v-if="!useLocalRandom">&ensp;|&ensp;<a @click="useLocalRandom = true" class="cursor-pointer text-gray-400 dark:text-gray-500">Use local random</a></span>
+      <span v-if="!isVisitingSharedUrl">&ensp;|&ensp;<a @click="useLocalRandom = true" class="cursor-pointer text-gray-400 dark:text-gray-500">Use local random</a></span>
     </p>
   </form>
 </template>
