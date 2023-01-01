@@ -1,14 +1,14 @@
 import {aleaRNGFactory, NumberGenerator} from 'number-generator';
 
 export class Randomizer {
-    private _generator: NumberGenerator;
+    private readonly _generator: NumberGenerator | null;
 
-    constructor(randomHex: string) {
-        this._generator = aleaRNGFactory(hexToNumber(randomHex));
+    constructor(randomHex?: string) {
+        this._generator = randomHex ? aleaRNGFactory(hexToNumber(randomHex)) : null;
     }
 
     public randomFloat(): number {
-        return this._generator.uFloat32();
+        return this._generator ? this._generator.uFloat32() : Math.random();
     }
 
     public randomIntBetween(min: number, max: number): number {

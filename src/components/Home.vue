@@ -76,11 +76,12 @@ const listArray = computed(() => settings.list.split("\n").map(s => s.trim()).fi
 const listContainsDuplicate = computed(() => new Set(listArray.value).size !== listArray.value.length);
 const rolesArray = computed(() => settings.roles.split("\n").map(s => s.trim()).filter(s => s).sort());
 const randomDog = ref<{ src: string, result: number | string } | null>(null);
+const useLocalRandom = ref<boolean>(false);
 const randomize = () => {
   if (!randomPulse.value) {
     return;
   }
-  const randomizer = new Randomizer(randomPulse.value.trimmedRandomValue);
+  const randomizer = new Randomizer(useLocalRandom.value ? undefined : randomPulse.value.trimmedRandomValue);
   if (settings.mode === 'number') {
     if (!settings.min || !settings.max) {
       return;
@@ -172,29 +173,41 @@ li::marker {
 
 <template>
   <form @submit.prevent="$emit('submit', settings)">
-    <div class="border-b mb-4">
-      <div v-if="!settings.result" class="mb-4">
-        <label for="datetime" class="block text-sm font-medium text-gray-700 dark:text-gray-500">Time of Beacon Pulse</label>
-        <div class="relative mt-1 rounded-md shadow-sm">
-          <input type="datetime-local" id="datetime" :disabled="Boolean(settings.result)"
-                 class="block w-full rounded-md border-gray-300 focus:border-red-400 dark:focus:border-red-800 focus:ring-red-400 dark:focus:ring-red-800 sm:text-sm dark:bg-gray-800 dark:text-gray-200"
-                 :class="{ 'border-red-300 focus:border-red-400': !time }"
-                 v-model="timeString" min="2022-12-01T00:00" :max="dateToString(maxDate)" step="60"/>
+    <div class="border-b mb-4 pb-4">
+      <div v-if="useLocalRandom" class="flex items-start">
+        <div class="flex items-center h-5">
+          <input type="checkbox" v-model="useLocalRandom" id="use_local_random"
+                 class="rounded border-gray-300 text-red-600 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50">
+        </div>
+        <div class="ml-3 text-sm">
+          <label for="use_local_random" class="font-medium text-gray-700 dark:text-gray-300">Use local pseudorandom number generator</label>
+          <p class="text-gray-500 dark:text-gray-400">The result will be unreproducible. Not recommended for trusted transaction.</p>
         </div>
       </div>
-      <p v-if="!randomPulse" class="mb-4 text-xs text-gray-500">
-        <template v-if="time">{{ time }} <span v-if="time > new Date()" class="italic font-bold text-red-500">(Future)</span></template>
-        <template v-else>Timezone: {{ timezone }} (
-          <template v-if="timezoneOffset<0">+</template>
-          {{ -timezoneOffset / 60 }})
-        </template>
-      </p>
-      <div v-if="randomPulse" class="mb-4 break-all">
-        <p class="text-xs text-gray-400">Randomness provided by <a href="https://csrc.nist.gov/Projects/interoperable-randomness-beacons/beacon-20" target="_blank" class="text-gray-500">NIST
-          Randomness Beacon</a></p>
-        Pulse <span class="font-mono text-red-600">#{{ randomPulse.pulseIndex }}</span> at <span class="text-red-700">{{ new Date(randomPulse.timeStamp) }}</span>:
-        <span class="font-mono text-sm text-red-400 dark:text-red-800" title="52-bit randomness from NIST">{{ randomPulse.trimmedRandomValue }}</span>
-      </div>
+      <template v-else>
+        <div v-if="!settings.result" class="mb-4">
+          <label for="datetime" class="block text-sm font-medium text-gray-700 dark:text-gray-400">Time of Beacon Pulse</label>
+          <div class="relative mt-1 rounded-md shadow-sm">
+            <input type="datetime-local" id="datetime" :disabled="Boolean(settings.result)"
+                   class="block w-full rounded-md border-gray-300 focus:border-red-400 dark:focus:border-red-800 focus:ring-red-400 dark:focus:ring-red-800 sm:text-sm dark:bg-gray-800 dark:text-gray-200"
+                   :class="{ 'border-red-300 focus:border-red-400': !time }"
+                   v-model="timeString" min="2022-12-01T00:00" :max="dateToString(maxDate)" step="60"/>
+          </div>
+        </div>
+        <div v-if="randomPulse" class="break-all">
+          <p class="text-xs text-gray-400">Randomness provided by <a href="https://csrc.nist.gov/Projects/interoperable-randomness-beacons/beacon-20" target="_blank" class="text-gray-500">NIST
+            Randomness Beacon</a></p>
+          Pulse <span class="font-mono text-red-600">#{{ randomPulse.pulseIndex }}</span> at <span class="text-red-700">{{ new Date(randomPulse.timeStamp) }}</span>:
+          <span class="font-mono text-sm text-red-400 dark:text-red-800" title="52-bit randomness from NIST">{{ randomPulse.trimmedRandomValue }}</span>
+        </div>
+        <p v-else class="text-xs text-gray-500">
+          <template v-if="time">{{ time }} <span v-if="time > new Date()" class="italic font-bold text-red-500">(Future)</span></template>
+          <template v-else>Timezone: {{ timezone }} (
+            <template v-if="timezoneOffset<0">+</template>
+            {{ -timezoneOffset / 60 }})
+          </template>
+        </p>
+      </template>
     </div>
     <div class="flex flex-col sm:flex-row gap-6">
       <div class="basis-1/2">
@@ -342,8 +355,9 @@ li::marker {
         </div>
       </div>
     </div>
-    <p v-if="shareUrl" class="text-center text-sm mt-4 text-gray-500 dark:text-gray-400">
-      Share: <a :href="shareUrl" class="text-gray-400 dark:text-gray-500">{{ shareUrl }}</a>
+    <p v-if="shareUrl" class="text-center text-xs mt-4 text-gray-500 dark:text-gray-400">
+      Share: <a :href="shareUrl" class="text-red-400 dark:text-red-600">{{ shareUrl }}</a>
+      <span v-if="!useLocalRandom">&ensp;|&ensp;<a @click="useLocalRandom = true" class="cursor-pointer text-gray-400 dark:text-gray-500">Use local random</a></span>
     </p>
   </form>
 </template>
