@@ -21,7 +21,6 @@ const toggleDarkMode = () => {
           <span class="text-gray-700 dark:text-gray-200">Randomizer</span>
         </h1>
       </div>
-      <p class="mt-4 text-xs text-center"><a @click="showHowDialog = true" class="cursor-pointer text-gray-500 dark:text-gray-400">How it works?</a></p>
 
       <div class="mt-8">
         <Home />
@@ -29,7 +28,8 @@ const toggleDarkMode = () => {
 
       <div class="mt-12 mb-4 text-xs font-light text-gray-400 dark:text-gray-300 text-center">
         Created with ❤ by Keen&nbsp;|&nbsp;
-        <a href="https://github.com/keenthekeen/dog-randomizer" target="_blank" class="text-slate-300 dark:text-slate-500 hover:underline hover:text-gray-400 dark:hover:text-gray-300">Source Code</a>&nbsp;|&nbsp;
+        <a @click="showHowDialog = true" class="cursor-pointer text-slate-400 dark:text-slate-400 hover:underline hover:text-gray-400 dark:hover:text-gray-300">How it works?</a>&nbsp;|&nbsp;
+        <a href="https://github.com/keenthekeen/dog-randomizer" target="_blank" class="text-slate-400 dark:text-slate-400 hover:underline hover:text-gray-400 dark:hover:text-gray-300">Source Code</a>&nbsp;|&nbsp;
         <SunIcon @click="toggleDarkMode" title="Toggle dark theme"
                  class="inline-block h-5 cursor-pointer text-slate-300 dark:text-slate-500 hover:underline hover:text-gray-400 dark:hover:text-gray-300"/>
       </div>

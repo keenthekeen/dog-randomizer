@@ -77,19 +77,36 @@ ol > li {
         >
           <div v-show="show" class="mb-6 bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:w-full sm:mx-auto" :class="maxWidthClass">
             <div class="px-6 py-4">
-              <div class="text-lg">
+              <div class="font-bold text-lg">
                 How it works?
               </div>
 
               <div class="mt-4">
-                <a href="https://csrc.nist.gov/Projects/interoperable-randomness-beacons/beacon-20" target="_blank" class="text-red-500">
-                  NIST Randomness Beacon
-                </a> generates a public random value every minute. It is verifiable and unpredictable.
-                This value is used as a seed to generate a random number.
-                <h3 class="mt-6 leading-4 text-lg">Example of application</h3>
+                <p class="my-2">
+                  In medical students' lives, there are situations requiring randomization, such as night shift schedule allocation and group work distribution.
+                  Usually, one of the students will be assigned to generate a random number and share it with the group.
+                  However, this method requires trust in the assigned peer and can be tampered with.<br />
+                </p>
+                <p class="my-2">
+                  One solution to this problem is to use a public random number generator.
+                  This concept is comparable to the use of lottery results to determine the winner.
+                  Everyone trusts the lottery result, no one can tamper with it nor be able to predict the result.
+                </p>
+                <p class="my-2">
+                  The U.S. National Institute of Standards and Technology (NIST)'s
+                  <a href="https://csrc.nist.gov/Projects/interoperable-randomness-beacons/beacon-20" target="_blank" class="text-red-500">
+                    Randomness Beacon</a> applies the similar concept, but with modern cryptography to ensure unpredictability,
+                  unbiasability, and verifiability. It generates and publishes a random value every 60 seconds.
+                </p>
+                <p class="my-2">
+                  This application then uses that value as a seed to generate a random number with user-configured conditions.
+                  Therefore, the generated number is reproducible and verifiable.
+                </p>
+
+                <h3 class="mt-6 leading-4 text-lg">How to use</h3>
                 <ol class="m-4 list-decimal list-outside">
-                  <li>User set mode of randomization as wanted, but set the time in the future (for example, in the next 15 minutes).</li>
-                  <li>User send configured URL to the group.</li>
+                  <li>The user set the mode of randomization as wanted, but set the time in the future (for example, in the next 15 minutes).</li>
+                  <li>The user sends a configured URL to the group.</li>
                   <li>Everyone can view random result after the set time. No one can tamper with the result.</li>
                 </ol>
               </div>
