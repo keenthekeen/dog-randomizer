@@ -11,12 +11,12 @@
   "dependencies": {
     "@heroicons/vue": "^2.0.13",
     "@tailwindcss/forms": "^0.5.3",
-    "@types/lodash": "^4.14.191",
     "lodash": "^4.17.21",
     "number-generator": "^4.0.6",
     "vue": "^3.2.41"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.191",
     "@vitejs/plugin-vue": "^4.0.0",
     "autoprefixer": "^10.4.13",
     "postcss": "^8.4.19",
