@@ -81,10 +81,15 @@ const rolesArray = computed(() => settings.roles.split("\n").map(s => s.trim()).
 const randomDog = ref<{ src: string, result: number | string } | null>(null);
 const useLocalRandom = ref<boolean>(false);
 const randomize = () => {
-  if (!randomPulse.value) {
+  let randomizer: Randomizer;
+  if (useLocalRandom.value) {
+    randomizer = new Randomizer();
+  }
+  if (randomPulse.value) {
+    randomizer = new Randomizer(randomPulse.value.trimmedRandomValue);
+  } else {
     return;
   }
-  const randomizer = new Randomizer(useLocalRandom.value ? undefined : randomPulse.value.trimmedRandomValue);
   if (settings.mode === 'number') {
     if (!settings.min || !settings.max) {
       return;
@@ -327,8 +332,8 @@ li::marker {
         </div>
       </div>
     </div>
-    <button type="submit" @click="randomize" v-if="!isFormDisabled" :disabled="!randomPulse"
-            :class="{ 'border-slate-700 dark:border-slate-300 text-slate-700 dark:text-slate-300': randomPulse, 'border-gray-300 text-gray-300 dark:border-gray-700 dark:text-gray-700': !randomPulse }"
+    <button type="submit" @click="randomize" v-if="!isFormDisabled" :disabled="!randomPulse && !useLocalRandom"
+            :class="{ 'border-slate-700 dark:border-slate-300 text-slate-700 dark:text-slate-300': randomPulse || useLocalRandom, 'border-gray-300 text-gray-300 dark:border-gray-700 dark:text-gray-700': !randomPulse && !useLocalRandom }"
             class="mt-8 group relative flex w-full justify-center rounded-md py-2 px-4 text-sm font-medium border-2 hover:bg-black hover:bg-opacity-5 focus:outline-none focus:ring-0 transition duration-150 ease-in-out">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3">
               <ChevronRightIcon class="h-5 w-5" aria-hidden="true"/>
