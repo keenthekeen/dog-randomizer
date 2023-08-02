@@ -24,7 +24,11 @@ let timeWatcher: number | null = null;
 const timeString = computed({
   get: () => dateToString(time.value),
   set: (newValue) => {
-    time.value = new Date(newValue); // recognize user's timezone by default
+    const newDate = new Date(newValue); // recognize user's timezone by default
+    if (newDate.toString() === 'Invalid Date') {
+      return; // invalid date input
+    }
+    time.value = newDate;
     if (timeWatcher) {
       clearTimeout(timeWatcher);
     }
@@ -350,7 +354,7 @@ li::marker {
           <div class="absolute w-full py-4 bottom-0 inset-x-0 font-bold text-4xl text-white text-center leading-4">Dog {{ settings.result }}</div>
         </div>
       </div>
-      <div v-else-if="settings.mode === 'pick' && Array.isArray(settings.result)">
+      <div v-else-if="settings.mode === 'pick' && settings.result && Array.isArray(settings.result)">
         <ol class="list-decimal list-outside pl-8">
           <li v-for="item in (listContainsDuplicate ? settings.result : listArray)" :key="item" :class="//@ts-ignore
           {'font-bold text-red-600': settings.result.includes(item)}">
