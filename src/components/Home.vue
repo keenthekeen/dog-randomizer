@@ -88,8 +88,7 @@ const randomize = () => {
   let randomizer: Randomizer;
   if (useLocalRandom.value) {
     randomizer = new Randomizer();
-  }
-  if (randomPulse.value) {
+  } else if (randomPulse.value) {
     randomizer = new Randomizer(randomPulse.value.trimmedRandomValue);
   } else {
     return;
