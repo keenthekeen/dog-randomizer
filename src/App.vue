@@ -16,7 +16,7 @@ const toggleDarkMode = () => {
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 sm:mt-0">
       <div class="flex justify-center pt-8">
         <a href="/">
-          <h1 class="text-6xl font-extrabold md:px-4 lg:px-12">
+          <h1 class="text-5xl sm:text-6xl font-extrabold md:px-4 lg:px-12">
             <span class="text-transparent bg-clip-text bg-gradient-to-br from-red-400 to-rose-700">Dog</span>
             <span class="text-4xl">&ensp;🐶&ensp;</span>
             <span class="text-gray-700 dark:text-gray-200">Randomizer</span>

@@ -394,7 +394,12 @@ li::marker {
       </div>
     </div>
     <p v-if="shareUrl && !useLocalRandom" class="text-center text-xs mt-4 text-gray-500 dark:text-gray-400">
-      Share: <a :href="shareUrl" class="text-red-400 dark:text-red-600">{{ shareUrl }}</a>
+      <span v-if="shareUrl.length < 100">
+        Share: <a :href="shareUrl" class="text-red-400 dark:text-red-600 text-ellipsis">{{ shareUrl }}</a>
+      </span>
+      <span v-else>
+        <a :href="shareUrl" class="text-red-400 dark:text-red-600 text-ellipsis">Sharable link</a>
+      </span>
       <span v-if="!isVisitingSharedUrl">&ensp;|&ensp;<a @click="useLocalRandom = true" class="cursor-pointer text-gray-400 dark:text-gray-500">Use local random</a></span>
     </p>
   </form>
